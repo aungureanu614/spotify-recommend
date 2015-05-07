@@ -1,0 +1,19 @@
+{
+  "name": "spotify-recommend",
+  "version": "0.0.0",
+  "description": "Thinkful Unit 3 Project - Spotify song recommendations",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "spotify",
+    "music"
+  ],
+  "author": "Justin Hill",
+  "license": "None",
+  "dependencies": {
+    "express": "^4.12.3",
+    "unirest": "^0.4.0"
+  }
+}
