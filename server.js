@@ -20,7 +20,11 @@ app.get('/search/:name', function(req, res) {
 
     var onSearchEnd = function(item) {
         artist = item.artists.items[0];
-        res.json(artist);
+    	var relatedReq = getFromApi('artists/' + artist.id + '/related-artists');
+    	relatedReq.on('end', function addRelated (artistArray) {
+    		artist.related = artistArray.artists;
+        	res.json(artist);
+    	});
     };
 
     var onError = function() {
@@ -29,9 +33,11 @@ app.get('/search/:name', function(req, res) {
 
     var searchReq = getFromApi('search', {
         q: req.params.name,
-        limit: 10,
+        limit: 1,
         type: 'artist'
     });
+
+    
     searchReq.on('end', onSearchEnd);
     searchReq.on('error', onError);
 });
