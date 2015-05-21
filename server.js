@@ -15,31 +15,38 @@ var getFromApi = function(endpoint, args) {
 var app = express();
 app.use(express.static('public'));
 
-app.get('/search/:name', function(req, res) {
-    var artist;
+function onSearchEnd (req, res, next) {
+    var artist = req.artists.items[0];
+    var relatedReq = getFromApi('artists/' + artist.id + '/related-artists');
+    relatedReq.on('end', function addRelated (artistArray) {
+        req.artist.related = artistArray.artists;
+        next();
+    });
+}
 
-    var onSearchEnd = function(item) {
-        artist = item.artists.items[0];
-    	var relatedReq = getFromApi('artists/' + artist.id + '/related-artists');
-    	relatedReq.on('end', function addRelated (artistArray) {
-    		artist.related = artistArray.artists;
-        	res.json(artist);
-    	});
-    };
-
-    var onError = function() {
-        res.sendStatus(404);
-    };
-
+function searchRequest (req, res, next) {
     var searchReq = getFromApi('search', {
         q: req.params.name,
         limit: 1,
         type: 'artist'
     });
+    searchReq.on('end', function(data) {
+        req.artist = data;
+        next();
+    });
+}
 
-    
-    searchReq.on('end', onSearchEnd);
-    searchReq.on('error', onError);
+var middleware = [searchRequest, onSearchEnd];
+
+app.get('/search/:name', middleware, function(req, res) {
+    res.json(req.artist);
+});
+
+app.use(function(error, req, res, next) {
+    if (error) {
+        res.status(404);
+    }
+    next();
 });
 
 app.listen(8080);
