@@ -12,7 +12,7 @@ function getFromApi (endpoint, args, callback) {
 }
 
 function onSearchEnd (req, res, next) {
-	var artist = req.search.body.artists.items[0];
+	var artist = req.search.artists.items[0];
 	getFromApi('artists/' + artist.id + '/related-artists',null,
 		function addRelated (artistArray) {
 			artist.related = artistArray.artists;
@@ -27,12 +27,12 @@ function searchReq (req, res, next) {
 		limit: 1,
 		type: 'artist'
 	}
+	getFromApi('search', options, function(body) {
+		req.search = body;
+		next();
+	});
 }
 
-getFromApi('search',options,function(body) {
-	req.search = body;
-	next();
-});
 
 
 var middleware = [searchReq, onSearchEnd];
