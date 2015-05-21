@@ -1,52 +1,49 @@
 var unirest = require('unirest');
 var express = require('express');
-var events = require('events');
-
-var getFromApi = function(endpoint, args) {
-    var emitter = new events.EventEmitter();
-    unirest.get('https://api.spotify.com/v1/' + endpoint)
-           .qs(args)
-           .end(function(response) {
-               emitter.emit('end', response.body);
-            });
-    return emitter;
-};
-
 var app = express();
 app.use(express.static('public'));
 
+function getFromApi (endpoint, args, callback) {
+	return unirest.get('https://api.spotify.com/v1/' + endpoint)
+		.qs(args)
+		.end(function(response) {
+			return callback(response.body);
+		});
+}
+
 function onSearchEnd (req, res, next) {
-    var artist = req.artists.items[0];
-    var relatedReq = getFromApi('artists/' + artist.id + '/related-artists');
-    relatedReq.on('end', function addRelated (artistArray) {
-        req.artist.related = artistArray.artists;
-        next();
-    });
+	var artist = req.search.body.artists.items[0];
+	getFromApi('artists/' + artist.id + '/related-artists',null,
+		function addRelated (artistArray) {
+			artist.related = artistArray.artists;
+			res.send(artist);
+		}
+	);
 }
 
-function searchRequest (req, res, next) {
-    var searchReq = getFromApi('search', {
-        q: req.params.name,
-        limit: 1,
-        type: 'artist'
-    });
-    searchReq.on('end', function(data) {
-        req.artist = data;
-        next();
-    });
+function searchReq (req, res, next) {
+	var options = {
+		q: req.params.name,
+		limit: 1,
+		type: 'artist'
+	}
 }
 
-var middleware = [searchRequest, onSearchEnd];
+getFromApi('search',options,function(body) {
+	req.search = body;
+	next();
+});
+
+
+var middleware = [searchReq, onSearchEnd];
 
 app.get('/search/:name', middleware, function(req, res) {
-    res.json(req.artist);
 });
 
-app.use(function(error, req, res, next) {
-    if (error) {
-        res.status(404);
-    }
-    next();
+app.use(function(err,res,req,next){
+	if(err)next(err);
 });
 
-app.listen(8080);
+app.listen(8080,function(){
+	console.log("App listening on http://localhost:%d", 8080);
+});
